@@ -87,41 +87,48 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 18 15% 8%;
+    --foreground: 35 25% 85%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 18 15% 10%;
+    --card-foreground: 35 25% 85%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 18 15% 10%;
+    --popover-foreground: 35 25% 85%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 35 60% 65%;
+    --primary-foreground: 18 15% 8%;
+    --primary-hover: 35 60% 55%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 18 10% 15%;
+    --secondary-foreground: 35 25% 85%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 18 10% 12%;
+    --muted-foreground: 35 15% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 30 80% 55%;
+    --accent-foreground: 18 15% 8%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 18 10% 18%;
+    --input: 18 10% 18%;
+    --ring: 35 60% 65%;
+    --sidebar-background: 18 15% 8%;
+    --sidebar-foreground: 35 25% 85%;
+    --sidebar-primary: 35 60% 65%;
+    --sidebar-primary-foreground: 18 15% 8%;
+    --sidebar-accent: 18 10% 15%;
+    --sidebar-accent-foreground: 35 25% 85%;
+    --sidebar-border: 18 10% 18%;
+    --sidebar-ring: 35 60% 65%;
   }
 }
 
@@ -132,5 +139,9 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+  
+  html {
+    @apply dark;
   }
 }

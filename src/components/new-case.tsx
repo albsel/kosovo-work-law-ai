@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { aiService, type CaseAnalysis, type LegalReference, type LawsuitDraft } from "@/lib/ai";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,16 +45,54 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
     description: "",
     documents: [] as File[],
     caseExplanation: "",
-    analysis: null,
-    references: null,
-    lawsuit: null
+    analysis: null as CaseAnalysis | null,
+    references: null as LegalReference[] | null,
+    lawsuit: null as LawsuitDraft | null
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const currentIndex = steps.findIndex(step => step.id === currentStep);
+    
+    if (currentStep === "case" && !caseData.analysis) {
+      setIsLoading(true);
+      try {
+        const analysis = await aiService.analyzeCase(caseData.caseExplanation, caseData.documents, caseData);
+        setCaseData({...caseData, analysis});
+      } catch (error) {
+        console.error("Error analyzing case:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    if (currentStep === "analyze" && !caseData.references && caseData.analysis) {
+      setIsLoading(true);
+      try {
+        const references = await aiService.getLegalReferences(caseData.analysis);
+        setCaseData({...caseData, references});
+      } catch (error) {
+        console.error("Error getting references:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    if (currentStep === "reference" && !caseData.lawsuit && caseData.analysis && caseData.references) {
+      setIsLoading(true);
+      try {
+        const lawsuit = await aiService.generateLawsuit(caseData, caseData.analysis, caseData.references);
+        setCaseData({...caseData, lawsuit});
+      } catch (error) {
+        console.error("Error generating lawsuit:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1].id as CaseStep);
     } else {
@@ -141,7 +180,18 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
                 <p className="text-muted-foreground mb-4">
                   Upload employment contracts, termination letters, payslips, or any relevant documents
                 </p>
-                <Button variant="outline">
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setCaseData({...caseData, documents: [...caseData.documents, ...files]});
+                  }}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <Button variant="outline" onClick={() => document.getElementById('file-upload')?.click()}>
                   <Upload className="w-4 h-4 mr-2" />
                   Choose Files
                 </Button>
@@ -153,9 +203,21 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
                     {caseData.documents.map((file, index) => (
                       <div key={index} className="flex items-center justify-between p-2 border rounded">
                         <span className="text-sm">{file.name}</span>
-                        <Badge variant="secondary">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </Badge>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="secondary">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              const newDocs = caseData.documents.filter((_, i) => i !== index);
+                              setCaseData({...caseData, documents: newDocs});
+                            }}
+                          >
+                            ×
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -199,39 +261,65 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">AI Analysis</h3>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <BarChart3 className="w-5 h-5 mr-2" />
-                    Case Analysis Results
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
-                    <h4 className="font-medium text-success mb-2">Strong Legal Grounds</h4>
-                    <p className="text-sm">
-                      Based on your case description and uploaded documents, there appear to be valid grounds for legal action under Kosovo Work Law.
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="font-medium">Key Findings:</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-start">
-                        <CheckCircle className="w-4 h-4 text-success mr-2 mt-0.5 flex-shrink-0" />
-                        Potential violation of termination procedures (Article 67, Kosovo Labor Law)
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="w-4 h-4 text-success mr-2 mt-0.5 flex-shrink-0" />
-                        Insufficient notice period provided
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="w-4 h-4 text-success mr-2 mt-0.5 flex-shrink-0" />
-                        Evidence suggests discriminatory practices
-                      </li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
+              {isLoading ? (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center">
+                      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+                      <p>AI is analyzing your case...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : caseData.analysis ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <BarChart3 className="w-5 h-5 mr-2" />
+                      Case Analysis Results
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+                      <h4 className="font-medium text-success mb-2">Success Probability: {caseData.analysis.successProbability}%</h4>
+                      <p className="text-sm">
+                        Based on your case description and uploaded documents, AI has identified strong legal grounds for your case.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Strong Points:</h4>
+                      <ul className="space-y-2 text-sm">
+                        {caseData.analysis.strongPoints.map((point, index) => (
+                          <li key={index} className="flex items-start">
+                            <CheckCircle className="w-4 h-4 text-success mr-2 mt-0.5 flex-shrink-0" />
+                            {point}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Recommendations:</h4>
+                      <ul className="space-y-2 text-sm">
+                        {caseData.analysis.recommendations.map((rec, index) => (
+                          <li key={index} className="flex items-start">
+                            <div className="w-4 h-4 rounded-full bg-accent mr-2 mt-0.5 flex-shrink-0"></div>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center text-muted-foreground">
+                      <p>Complete the previous steps to see AI analysis</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         );
@@ -241,42 +329,49 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">Legal References</h3>
-              <div className="space-y-4">
+              {isLoading ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Kosovo Labor Law Articles</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="p-3 border border-l-4 border-l-primary bg-primary/5">
-                      <p className="font-medium">Article 67 - Termination Procedures</p>
-                      <p className="text-sm text-muted-foreground">
-                        Employer must provide written notice and valid reasons for termination...
-                      </p>
-                    </div>
-                    <div className="p-3 border border-l-4 border-l-accent bg-accent/5">
-                      <p className="font-medium">Article 24 - Equal Treatment</p>
-                      <p className="text-sm text-muted-foreground">
-                        All employees have the right to equal treatment regardless of...
-                      </p>
+                  <CardContent className="py-8">
+                    <div className="text-center">
+                      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+                      <p>AI is finding relevant legal references...</p>
                     </div>
                   </CardContent>
                 </Card>
-
+              ) : caseData.references ? (
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Kosovo Labor Law Articles</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {caseData.references.map((ref, index) => (
+                        <div key={index} className={`p-3 border border-l-4 ${
+                          ref.relevance === 'high' ? 'border-l-accent bg-accent/5' : 
+                          ref.relevance === 'medium' ? 'border-l-primary bg-primary/5' : 
+                          'border-l-muted bg-muted/5'
+                        }`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium">{ref.article} - {ref.title}</p>
+                            <Badge variant={ref.relevance === 'high' ? 'default' : 'secondary'}>
+                              {ref.relevance} relevance
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{ref.content}</p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Precedent Cases</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="p-3 border rounded-lg">
-                      <p className="font-medium">Case No. 123/2023 - Similar Termination Dispute</p>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Supreme Court ruling on wrongful termination with similar circumstances
-                      </p>
-                      <Badge variant="secondary">Plaintiff Won</Badge>
+                  <CardContent className="py-8">
+                    <div className="text-center text-muted-foreground">
+                      <p>Complete the analysis step to see legal references</p>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              )}
             </div>
           </div>
         );
@@ -286,83 +381,56 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">Generated Lawsuit Draft</h3>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Lawsuit Document</span>
-                    <Badge className="bg-success text-success-foreground">
-                      Ready for Review
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    AI has generated a complete lawsuit draft based on your case
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="p-4 border rounded-lg bg-muted/30 max-h-96 overflow-y-auto">
-                    <div className="space-y-4 text-sm">
-                      <div className="text-center">
-                        <h4 className="font-bold">BASIC COURT OF PRISTINA</h4>
-                        <h4 className="font-bold">CIVIL DIVISION</h4>
-                      </div>
-                      
-                      <div>
-                        <p><strong>Plaintiff:</strong> {caseData.clientName}</p>
-                        <p><strong>Address:</strong> [Address to be filled]</p>
-                        <p><strong>Represented by:</strong> [Attorney Name]</p>
-                      </div>
-
-                      <div>
-                        <p><strong>Defendant:</strong> [Company Name]</p>
-                        <p><strong>Address:</strong> [Company Address]</p>
-                      </div>
-
-                      <div className="text-center">
-                        <h5 className="font-bold">LAWSUIT</h5>
-                        <h5 className="font-bold">FOR WRONGFUL TERMINATION AND DAMAGES</h5>
-                      </div>
-
-                      <div>
-                        <p><strong>FACTS:</strong></p>
-                        <p className="text-muted-foreground">
-                          The plaintiff was employed by the defendant company under an employment contract dated [Date]. 
-                          On [Termination Date], the defendant unlawfully terminated the plaintiff's employment in violation 
-                          of Article 67 of the Kosovo Labor Law...
-                        </p>
-                      </div>
-
-                      <div>
-                        <p><strong>LEGAL GROUNDS:</strong></p>
-                        <p className="text-muted-foreground">
-                          The termination violates Article 67 of the Kosovo Labor Law, which requires proper notice and 
-                          valid reasons for termination. The defendant failed to comply with these requirements...
-                        </p>
-                      </div>
-
-                      <div>
-                        <p><strong>RELIEF SOUGHT:</strong></p>
-                        <ul className="list-disc list-inside text-muted-foreground">
-                          <li>Reinstatement to previous position</li>
-                          <li>Payment of lost wages and benefits</li>
-                          <li>Compensation for damages</li>
-                          <li>Legal costs and attorney fees</li>
-                        </ul>
+              {isLoading ? (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center">
+                      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+                      <p>AI is generating your lawsuit document...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : caseData.lawsuit ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Lawsuit Document</span>
+                      <Badge className="bg-success text-success-foreground">
+                        Ready for Review
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      AI has generated a complete lawsuit draft based on your case analysis
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="p-4 border rounded-lg bg-muted/30 max-h-96 overflow-y-auto">
+                      <div className="space-y-4 text-sm whitespace-pre-line">
+                        {caseData.lawsuit.fullText}
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-4">
-                    <Button variant="outline" onClick={() => onComplete(caseData)}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Edit Document
-                    </Button>
-                    <div className="space-x-2">
-                      <Button variant="outline">Save Draft</Button>
-                      <Button>Download PDF</Button>
+                    
+                    <div className="flex justify-between items-center mt-4">
+                      <Button variant="outline" onClick={() => onComplete(caseData)}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Edit Document
+                      </Button>
+                      <div className="space-x-2">
+                        <Button variant="outline">Save Draft</Button>
+                        <Button>Download PDF</Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center text-muted-foreground">
+                      <p>Complete the previous steps to generate lawsuit</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         );
@@ -429,9 +497,18 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Previous
         </Button>
-        <Button onClick={handleNext}>
-          {currentStepIndex === steps.length - 1 ? "Complete Case" : "Continue"}
-          <ArrowRight className="w-4 h-4 ml-2" />
+        <Button onClick={handleNext} disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <div className="animate-spin w-4 h-4 border-2 border-accent border-t-transparent rounded-full mr-2"></div>
+              Processing...
+            </>
+          ) : (
+            <>
+              {currentStepIndex === steps.length - 1 ? "Complete Case" : "Continue"}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </>
+          )}
         </Button>
       </div>
     </div>
