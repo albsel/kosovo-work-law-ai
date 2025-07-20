@@ -4,19 +4,19 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Dashboard } from "@/components/dashboard";
 import { NewCase } from "@/components/new-case";
 import { LawsuitEditor } from "@/components/lawsuit-editor";
-import { OpenAISetup } from "@/components/openai-setup";
-import { openAIService } from "@/lib/openai";
+import { DeepSeekSetup } from "@/components/openai-setup";
+import { deepSeekService } from "@/lib/openai";
 
 export type AppView = "dashboard" | "new-case" | "lawsuit-editor";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<AppView>("dashboard");
   const [currentCase, setCurrentCase] = useState<any>(null);
-  const [showOpenAISetup, setShowOpenAISetup] = useState(false);
+  const [showDeepSeekSetup, setShowDeepSeekSetup] = useState(false);
 
   useEffect(() => {
-    // Check if OpenAI API key is configured
-    setShowOpenAISetup(!openAIService.getApiKey());
+    // Check if DeepSeek API key is configured
+    setShowDeepSeekSetup(!deepSeekService.getApiKey());
   }, []);
 
   const renderView = () => {
@@ -45,10 +45,10 @@ const Index = () => {
     }
   };
 
-  if (showOpenAISetup) {
+  if (showDeepSeekSetup) {
     return (
       <div className="min-h-screen bg-background">
-        <OpenAISetup onSetupComplete={() => setShowOpenAISetup(false)} />
+        <DeepSeekSetup onSetupComplete={() => setShowDeepSeekSetup(false)} />
       </div>
     );
   }

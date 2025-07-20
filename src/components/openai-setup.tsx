@@ -5,18 +5,18 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Key, AlertCircle, CheckCircle } from "lucide-react";
-import { openAIService } from "@/lib/openai";
+import { deepSeekService } from "@/lib/openai";
 
-interface OpenAISetupProps {
+interface DeepSeekSetupProps {
   onSetupComplete: () => void;
 }
 
-export function OpenAISetup({ onSetupComplete }: OpenAISetupProps) {
-  const [apiKey, setApiKey] = useState(openAIService.getApiKey() || '');
+export function DeepSeekSetup({ onSetupComplete }: DeepSeekSetupProps) {
+  const [apiKey, setApiKey] = useState(deepSeekService.getApiKey() || '');
   const [showKey, setShowKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState('');
-  const [isValid, setIsValid] = useState(!!openAIService.getApiKey());
+  const [isValid, setIsValid] = useState(!!deepSeekService.getApiKey());
 
   const validateApiKey = async () => {
     if (!apiKey.trim()) {
@@ -28,10 +28,10 @@ export function OpenAISetup({ onSetupComplete }: OpenAISetupProps) {
     setValidationError('');
 
     try {
-      openAIService.setApiKey(apiKey);
+      deepSeekService.setApiKey(apiKey);
       
       // Test the API key with a simple request
-      const testResponse = await openAIService.chat([
+      const testResponse = await deepSeekService.chat([
         { role: 'user', content: 'Hello' }
       ]);
       
@@ -42,7 +42,7 @@ export function OpenAISetup({ onSetupComplete }: OpenAISetupProps) {
     } catch (error: any) {
       setValidationError(error.message || 'Invalid API key or connection failed');
       setIsValid(false);
-      openAIService.clearApiKey();
+      deepSeekService.clearApiKey();
     } finally {
       setIsValidating(false);
     }
@@ -60,15 +60,15 @@ export function OpenAISetup({ onSetupComplete }: OpenAISetupProps) {
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center">
             <Key className="w-5 h-5 mr-2" />
-            OpenAI Setup
+            DeepSeek Setup
           </CardTitle>
           <CardDescription>
-            Enter your OpenAI API key to enable AI-powered legal assistance
+            Enter your DeepSeek API key to enable AI-powered legal assistance
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="api-key">OpenAI API Key</Label>
+            <Label htmlFor="api-key">DeepSeek API Key</Label>
             <div className="relative">
               <Input
                 id="api-key"
@@ -121,7 +121,7 @@ export function OpenAISetup({ onSetupComplete }: OpenAISetupProps) {
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>• Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline">OpenAI Platform</a></p>
+            <p>• Get your API key from <a href="https://platform.deepseek.com" target="_blank" rel="noopener noreferrer" className="underline">DeepSeek Platform</a></p>
             <p>• Your API key is stored locally in your browser</p>
             <p>• We recommend connecting to Supabase for secure key storage</p>
           </div>

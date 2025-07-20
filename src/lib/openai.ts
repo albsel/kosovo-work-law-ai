@@ -1,9 +1,9 @@
-interface OpenAIMessage {
+interface DeepSeekMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-interface OpenAIResponse {
+interface DeepSeekResponse {
   choices: {
     message: {
       content: string;
@@ -11,17 +11,17 @@ interface OpenAIResponse {
   }[];
 }
 
-export class OpenAIService {
+export class DeepSeekService {
   private apiKey: string | null = null;
 
   constructor() {
     // Load API key from localStorage if available
-    this.apiKey = localStorage.getItem('openai_api_key');
+    this.apiKey = localStorage.getItem('deepseek_api_key');
   }
 
   setApiKey(apiKey: string) {
     this.apiKey = apiKey;
-    localStorage.setItem('openai_api_key', apiKey);
+    localStorage.setItem('deepseek_api_key', apiKey);
   }
 
   getApiKey(): string | null {
@@ -30,23 +30,23 @@ export class OpenAIService {
 
   clearApiKey() {
     this.apiKey = null;
-    localStorage.removeItem('openai_api_key');
+    localStorage.removeItem('deepseek_api_key');
   }
 
-  async chat(messages: OpenAIMessage[]): Promise<string> {
+  async chat(messages: DeepSeekMessage[]): Promise<string> {
     if (!this.apiKey) {
-      throw new Error('OpenAI API key not set');
+      throw new Error('DeepSeek API key not set');
     }
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4.1-2025-04-14',
+          model: 'deepseek-chat',
           messages,
           temperature: 0.7,
           max_tokens: 1500,
@@ -55,13 +55,13 @@ export class OpenAIService {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || 'OpenAI API request failed');
+        throw new Error(error.error?.message || 'DeepSeek API request failed');
       }
 
-      const data: OpenAIResponse = await response.json();
+      const data: DeepSeekResponse = await response.json();
       return data.choices[0]?.message?.content || 'No response received';
     } catch (error) {
-      console.error('OpenAI API error:', error);
+      console.error('DeepSeek API error:', error);
       throw error;
     }
   }
@@ -84,7 +84,7 @@ Description: ${caseExplanation}
 
 Provide a detailed analysis focusing on Kosovo Labor Law requirements.`;
 
-    const messages: OpenAIMessage[] = [
+    const messages: DeepSeekMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ];
@@ -115,7 +115,7 @@ User request: ${userRequest}
 
 Please provide an improved version of the document addressing the user's request.`;
 
-    const messages: OpenAIMessage[] = [
+    const messages: DeepSeekMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ];
@@ -126,7 +126,7 @@ Please provide an improved version of the document addressing the user's request
   async chatAboutCase(conversationHistory: { role: string; content: string; }[], newMessage: string): Promise<string> {
     const systemPrompt = `You are a Kosovo labor law expert providing guidance on legal cases. Be helpful, professional, and provide specific advice based on Kosovo Labor Law. Keep responses concise but informative.`;
 
-    const messages: OpenAIMessage[] = [
+    const messages: DeepSeekMessage[] = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory.map(msg => ({
         role: msg.role as 'user' | 'assistant',
@@ -139,4 +139,4 @@ Please provide an improved version of the document addressing the user's request
   }
 }
 
-export const openAIService = new OpenAIService();
+export const deepSeekService = new DeepSeekService();

@@ -15,7 +15,7 @@ import {
   Send,
   RefreshCw
 } from "lucide-react";
-import { openAIService } from "@/lib/openai";
+import { deepSeekService } from "@/lib/openai";
 import { toast } from "sonner";
 
 interface LawsuitEditorProps {
@@ -128,7 +128,7 @@ Attorney for Plaintiff
         content: msg.content
       }));
 
-      const response = await openAIService.chatAboutCase(conversationHistory, userMessage.content);
+      const response = await deepSeekService.chatAboutCase(conversationHistory, userMessage.content);
       
       setChatMessages(prev => [...prev, {
         id: prev.length + 1,
@@ -141,7 +141,7 @@ Attorney for Plaintiff
       setChatMessages(prev => [...prev, {
         id: prev.length + 1,
         type: "ai",
-        content: "I'm sorry, I encountered an error. Please check your OpenAI API key and try again."
+        content: "I'm sorry, I encountered an error. Please check your DeepSeek API key and try again."
       }]);
     } finally {
       setIsLoading(false);
@@ -151,7 +151,7 @@ Attorney for Plaintiff
   const handleRegenerateDocument = async () => {
     setIsLoading(true);
     try {
-      const improvedDocument = await openAIService.improveLawsuit(
+      const improvedDocument = await deepSeekService.improveLawsuit(
         documentContent, 
         "Please regenerate this lawsuit document with stronger legal arguments and better structure."
       );
