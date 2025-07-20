@@ -15,6 +15,8 @@ import {
   Send,
   RefreshCw
 } from "lucide-react";
+import { openAIService } from "@/lib/openai";
+import { toast } from "sonner";
 
 interface LawsuitEditorProps {
   caseData: any;
@@ -104,26 +106,63 @@ Attorney for Plaintiff
     }
   ]);
   const [newMessage, setNewMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || isLoading) return;
 
-    setChatMessages([...chatMessages, {
+    const userMessage = {
       id: chatMessages.length + 1,
       type: "user",
       content: newMessage
-    }]);
+    };
 
-    // Simulate AI response
-    setTimeout(() => {
+    setChatMessages(prev => [...prev, userMessage]);
+    setNewMessage("");
+    setIsLoading(true);
+
+    try {
+      // Get conversation history for context
+      const conversationHistory = chatMessages.map(msg => ({
+        role: msg.type === "user" ? "user" : "assistant",
+        content: msg.content
+      }));
+
+      const response = await openAIService.chatAboutCase(conversationHistory, userMessage.content);
+      
       setChatMessages(prev => [...prev, {
         id: prev.length + 1,
         type: "ai",
-        content: "I understand your request. Let me update the document accordingly. The changes have been applied to strengthen the legal arguments."
+        content: response
       }]);
-    }, 1000);
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      toast.error(error.message || 'Failed to get AI response');
+      setChatMessages(prev => [...prev, {
+        id: prev.length + 1,
+        type: "ai",
+        content: "I'm sorry, I encountered an error. Please check your OpenAI API key and try again."
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    setNewMessage("");
+  const handleRegenerateDocument = async () => {
+    setIsLoading(true);
+    try {
+      const improvedDocument = await openAIService.improveLawsuit(
+        documentContent, 
+        "Please regenerate this lawsuit document with stronger legal arguments and better structure."
+      );
+      setDocumentContent(improvedDocument);
+      toast.success("Document regenerated successfully");
+    } catch (error: any) {
+      console.error('Regeneration error:', error);
+      toast.error(error.message || 'Failed to regenerate document');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleExport = (type: string) => {
@@ -263,7 +302,7 @@ Attorney for Plaintiff
                   rows={2}
                   className="flex-1"
                 />
-                <Button onClick={handleSendMessage} size="sm">
+                <Button onClick={handleSendMessage} size="sm" disabled={isLoading}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
@@ -303,7 +342,12 @@ Attorney for Plaintiff
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={handleRegenerateDocument}
+                disabled={isLoading}
+              >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Regenerate Document
               </Button>

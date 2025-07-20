@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Dashboard } from "@/components/dashboard";
 import { NewCase } from "@/components/new-case";
 import { LawsuitEditor } from "@/components/lawsuit-editor";
+import { OpenAISetup } from "@/components/openai-setup";
+import { openAIService } from "@/lib/openai";
 
 export type AppView = "dashboard" | "new-case" | "lawsuit-editor";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<AppView>("dashboard");
   const [currentCase, setCurrentCase] = useState<any>(null);
+  const [showOpenAISetup, setShowOpenAISetup] = useState(false);
+
+  useEffect(() => {
+    // Check if OpenAI API key is configured
+    setShowOpenAISetup(!openAIService.getApiKey());
+  }, []);
 
   const renderView = () => {
     switch (currentView) {
@@ -36,6 +44,14 @@ const Index = () => {
         return <Dashboard onNewCase={() => setCurrentView("new-case")} />;
     }
   };
+
+  if (showOpenAISetup) {
+    return (
+      <div className="min-h-screen bg-background">
+        <OpenAISetup onSetupComplete={() => setShowOpenAISetup(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
