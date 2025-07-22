@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-export type AppView = "dashboard" | "new-case" | "lawsuit-editor";
+export type AppView = "dashboard" | "new-case" | "lawsuit-editor" | "case-submitted";
 
 interface AppSidebarProps {
   currentView: AppView;

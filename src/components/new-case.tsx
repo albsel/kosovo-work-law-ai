@@ -20,7 +20,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 interface NewCaseProps {
-  onComplete: (caseData: any) => void;
+  onComplete: (caseData: any) => Promise<void>;
   onBack: () => void;
 }
 
@@ -96,7 +96,15 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1].id as CaseStep);
     } else {
-      onComplete(caseData);
+      // Submit the case
+      setIsLoading(true);
+      try {
+        await onComplete(caseData);
+      } catch (error) {
+        console.error("Error submitting case:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -505,7 +513,7 @@ export function NewCase({ onComplete, onBack }: NewCaseProps) {
             </>
           ) : (
             <>
-              {currentStepIndex === steps.length - 1 ? "Complete Case" : "Continue"}
+              {currentStepIndex === steps.length - 1 ? "Finalize & Submit" : "Continue"}
               <ArrowRight className="w-4 h-4 ml-2" />
             </>
           )}
